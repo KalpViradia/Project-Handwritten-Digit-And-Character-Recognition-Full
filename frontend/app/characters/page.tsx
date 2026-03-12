@@ -9,8 +9,8 @@ import ApiStatusBanner from "../components/ApiStatusBanner";
 
 // Lazy-load the visualizer — only loaded when modal opens
 const ForwardPassVisualizer = dynamic(
-  () => import("../components/ForwardPassVisualizer"),
-  { ssr: false }
+    () => import("../components/ForwardPassVisualizer"),
+    { ssr: false }
 );
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -19,11 +19,11 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const CHAR_LABELS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
 interface CharacterPrediction {
-    predicted_character: string;
-    predicted_index: number;
+    predictedCharacter: string;
+    predictedIndex: number;
     confidence: number;
     probabilities: number[];
-    image_grid?: number[][];
+    imageGrid?: number[][];
     warning?: string | null;
 }
 
@@ -38,7 +38,7 @@ export default function CharactersPage() {
 
     // Wake up the Render API on page load
     const warmUpApi = useCallback(() => {
-        fetch(`${API_BASE_URL}/health`).catch(() => {});
+        fetch(`${API_BASE_URL}/health`).catch(() => { });
     }, []);
 
     useEffect(() => {
@@ -62,7 +62,15 @@ export default function CharactersPage() {
             }
 
             const result = await response.json();
-            setPrediction(result);
+            console.log("API RESPONSE:", result);
+            setPrediction({
+                predictedCharacter: result.predictedCharacter ?? result.predicted_character,
+                predictedIndex: result.predictedIndex ?? result.predicted_index,
+                confidence: result.confidence,
+                probabilities: result.probabilities,
+                imageGrid: result.imageGrid ?? result.image_grid,
+                warning: result.warning,
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to connect to API");
         } finally {
@@ -89,7 +97,15 @@ export default function CharactersPage() {
             }
 
             const result = await response.json();
-            setPrediction(result);
+            console.log("API RESPONSE:", result);
+            setPrediction({
+                predictedCharacter: result.predictedCharacter ?? result.predicted_character,
+                predictedIndex: result.predictedIndex ?? result.predicted_index,
+                confidence: result.confidence,
+                probabilities: result.probabilities,
+                imageGrid: result.imageGrid ?? result.image_grid,
+                warning: result.warning,
+            });
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to connect to API");
         } finally {
@@ -257,10 +273,10 @@ export default function CharactersPage() {
             {showVisualizer && prediction && (
                 <ForwardPassVisualizer
                     probabilities={prediction.probabilities}
-                    predictedIndex={prediction.predicted_index}
+                    predictedIndex={prediction.predictedIndex}
                     labels={CHAR_LABELS}
                     mode="character"
-                    imageGrid={prediction.image_grid}
+                    imageGrid={prediction.imageGrid}
                     onClose={() => setShowVisualizer(false)}
                 />
             )}

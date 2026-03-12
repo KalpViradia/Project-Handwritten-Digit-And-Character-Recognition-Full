@@ -4,8 +4,8 @@
 const CHAR_LABELS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
 
 interface CharacterPrediction {
-    predicted_character: string;
-    predicted_index: number;
+    predictedCharacter: string;
+    predictedIndex: number;
     confidence: number;
     probabilities: number[];
     warning?: string | null;
@@ -52,7 +52,7 @@ export default function CharacterPredictionDisplay({ prediction, isLoading, onVi
             <div className="text-center">
                 <div className="text-8xl font-bold mb-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent"
                     style={{ textShadow: '0 0 60px rgba(16, 185, 129, 0.5)' }}>
-                    {prediction.predicted_character}
+                    {prediction.predictedCharacter}
                 </div>
                 <p className="text-lg text-gray-400">Predicted Character</p>
 
@@ -116,7 +116,7 @@ export default function CharacterPredictionDisplay({ prediction, isLoading, onVi
                 <p className="text-sm text-gray-400 mb-3">Top Predictions</p>
                 {topPredictions.map(({ char, prob, idx }) => (
                     <div key={idx} className="flex items-center gap-3">
-                        <span className={`w-8 text-center font-mono text-lg ${char === prediction.predicted_character
+                        <span className={`w-8 text-center font-mono text-lg ${char === prediction.predictedCharacter
                             ? "text-emerald-400 font-bold"
                             : "text-gray-400"
                             }`}>
@@ -124,16 +124,16 @@ export default function CharacterPredictionDisplay({ prediction, isLoading, onVi
                         </span>
                         <div className="flex-1 prob-bar">
                             <div
-                                className={`prob-bar-fill ${char === prediction.predicted_character ? 'highlight' : ''}`}
+                                className={`prob-bar-fill ${char === prediction.predictedCharacter ? 'highlight' : ''}`}
                                 style={{
                                     width: `${prob * 100}%`,
-                                    background: char === prediction.predicted_character
+                                    background: char === prediction.predictedCharacter
                                         ? 'linear-gradient(90deg, #10b981 0%, #14b8a6 100%)'
                                         : undefined
                                 }}
                             />
                         </div>
-                        <span className={`w-14 text-right text-sm ${char === prediction.predicted_character
+                        <span className={`w-14 text-right text-sm ${char === prediction.predictedCharacter
                             ? "text-emerald-400 font-semibold"
                             : "text-gray-500"
                             }`}>

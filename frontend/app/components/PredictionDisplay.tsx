@@ -1,7 +1,7 @@
 "use client";
 
 interface PredictionResult {
-    predicted_digit: number;
+    predictedIndex: number;
     confidence: number;
     probabilities: number[];
 }
@@ -40,7 +40,7 @@ export default function PredictionDisplay({ prediction, isLoading, onVisualize }
             {/* Main Prediction */}
             <div className="text-center">
                 <div className="prediction-digit mb-2">
-                    {prediction.predicted_digit}
+                    {prediction.predictedIndex}
                 </div>
                 <p className="text-lg text-gray-400">Predicted Digit</p>
             </div>
@@ -101,7 +101,7 @@ export default function PredictionDisplay({ prediction, isLoading, onVisualize }
                     .slice(0, 10)
                     .map(({ digit, prob }) => (
                         <div key={digit} className="flex items-center gap-3">
-                            <span className={`w-6 text-center font-mono text-lg ${digit === prediction.predicted_digit
+                            <span className={`w-6 text-center font-mono text-lg ${digit === prediction.predictedIndex
                                 ? "text-indigo-400 font-bold"
                                 : "text-gray-400"
                                 }`}>
@@ -109,16 +109,16 @@ export default function PredictionDisplay({ prediction, isLoading, onVisualize }
                             </span>
                             <div className="flex-1 prob-bar">
                                 <div
-                                    className={`prob-bar-fill ${digit === prediction.predicted_digit ? 'highlight' : ''}`}
+                                    className={`prob-bar-fill ${digit === prediction.predictedIndex ? 'highlight' : ''}`}
                                     style={{
                                         width: `${prob * 100}%`,
-                                        background: digit === prediction.predicted_digit
+                                        background: digit === prediction.predictedIndex
                                             ? 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)'
                                             : undefined
                                     }}
                                 />
                             </div>
-                            <span className={`w-14 text-right text-sm ${digit === prediction.predicted_digit
+                            <span className={`w-14 text-right text-sm ${digit === prediction.predictedIndex
                                 ? "text-indigo-400 font-semibold"
                                 : "text-gray-500"
                                 }`}>

@@ -11,7 +11,7 @@ import numpy as np
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 import tensorflow as tf
 
 # Local imports
@@ -60,19 +60,23 @@ class Base64ImageRequest(BaseModel):
 
 class DigitPredictionResponse(BaseModel):
     """Response model for digit predictions."""
-    predicted_digit: int
+    model_config = ConfigDict(populate_by_name=True)
+
+    predicted_digit: int = Field(..., alias="predictedDigit")
     confidence: float
     probabilities: list[float]
-    image_grid: list[list[float]] | None = None
+    image_grid: list[list[float]] | None = Field(None, alias="imageGrid")
 
 
 class CharacterPredictionResponse(BaseModel):
     """Response model for character predictions."""
-    predicted_character: str
-    predicted_index: int
+    model_config = ConfigDict(populate_by_name=True)
+
+    predicted_character: str = Field(..., alias="predictedCharacter")
+    predicted_index: int = Field(..., alias="predictedIndex")
     confidence: float
     probabilities: list[float]
-    image_grid: list[list[float]] | None = None
+    image_grid: list[list[float]] | None = Field(None, alias="imageGrid")
 
 
 def load_models():
@@ -167,11 +171,11 @@ async def predict_digit(file: UploadFile = File(...)):
         predictions = digit_model.predict(processed_image, verbose=0)
         
         return DigitPredictionResponse(
-            predicted_digit=int(np.argmax(predictions[0])),
+            predictedDigit=int(np.argmax(predictions[0])),
             confidence=float(np.max(predictions[0])),
             probabilities=predictions[0].tolist(),
-            image_grid=processed_image[0].squeeze().tolist()
-        )
+            imageGrid=processed_image[0].squeeze().tolist()
+        ).model_dump(by_alias=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 
@@ -200,15 +204,15 @@ async def predict_digit_canvas(request: Base64ImageRequest):
             warning = "Low confidence - digit may be unclear. Try redrawing."
         
         return {
-            "predicted_digit": predicted_digit,
+            "predictedDigit": predicted_digit,
             "confidence": confidence,
             "probabilities": predictions[0].tolist(),
             "warning": warning,
-            "all_predictions": [
+            "allPredictions": [
                 {"digit": i, "probability": float(p)} 
                 for i, p in enumerate(predictions[0])
             ],
-            "image_grid": processed_image[0].squeeze().tolist()
+            "imageGrid": processed_image[0].squeeze().tolist()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
@@ -233,12 +237,12 @@ async def predict_character(file: UploadFile = File(...)):
         predicted_idx = int(np.argmax(predictions[0]))
 
         return CharacterPredictionResponse(
-            predicted_character=CHAR_LABELS[predicted_idx],
-            predicted_index=predicted_idx,
+            predictedCharacter=CHAR_LABELS[predicted_idx],
+            predictedIndex=predicted_idx,
             confidence=float(np.max(predictions[0])),
             probabilities=predictions[0].tolist(),
-            image_grid=processed_image[0].squeeze().tolist()
-        )
+            imageGrid=processed_image[0].squeeze().tolist()
+        ).model_dump(by_alias=True)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
@@ -268,16 +272,16 @@ async def predict_character_canvas(request: Base64ImageRequest):
             warning = "Low confidence - character may be unclear. Try redrawing."
         
         return {
-            "predicted_character": CHAR_LABELS[predicted_idx],
-            "predicted_index": predicted_idx,
+            "predictedCharacter": CHAR_LABELS[predicted_idx],
+            "predictedIndex": predicted_idx,
             "confidence": confidence,
             "probabilities": predictions[0].tolist(),
             "warning": warning,
-            "all_predictions": [
+            "allPredictions": [
                 {"character": CHAR_LABELS[i], "probability": float(p)} 
                 for i, p in enumerate(predictions[0])
             ],
-            "image_grid": processed_image[0].squeeze().tolist()
+            "imageGrid": processed_image[0].squeeze().tolist()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
@@ -303,10 +307,10 @@ async def predict_digit_base64(request: Base64ImageRequest):
         predictions = digit_model.predict(processed_image, verbose=0)
         
         return DigitPredictionResponse(
-            predicted_digit=int(np.argmax(predictions[0])),
+            predictedDigit=int(np.argmax(predictions[0])),
             confidence=float(np.max(predictions[0])),
             probabilities=predictions[0].tolist()
-        )
+        ).model_dump(by_alias=True)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Prediction error: {str(e)}")
 

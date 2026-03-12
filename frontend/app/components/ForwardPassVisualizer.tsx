@@ -45,7 +45,6 @@ function lerpColor(c1: string, c2: string, t: number) {
   return c2; // Simplified for this cinematic effect
 }
 
-// Removed generatePixelGrid fallback to enforce strict data requirements
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -73,20 +72,10 @@ export default function ForwardPassVisualizer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
-  
+
   const accentColor = mode === "digit" ? COLORS.indigo : COLORS.emerald;
   const highlightColor = mode === "digit" ? COLORS.cyan : COLORS.teal;
-
-  // Debug production missing image grid
-  console.log("imageGrid length:", imageGrid?.length);
-
-  // Validate imageGrid
-  const isValidGrid = imageGrid && imageGrid.length === 28 && imageGrid[0]?.length === 28;
   const pixelGrid = imageGrid;
-
-  if (!isValidGrid) {
-    console.error("Visualizer Error: imageGrid is missing or invalid (expected 28x28 array).");
-  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -140,7 +129,7 @@ export default function ForwardPassVisualizer({
 
       const centerY = h / 2;
       const layoutS2 = easeInOutCubic(s2);
-      
+
       // X-Positions
       const inputX = lerp(w / 2, w * 0.15, layoutS2);
       const netX_in = lerp(inputX, w * 0.3, layoutS2);
@@ -152,38 +141,43 @@ export default function ForwardPassVisualizer({
       ctx.save();
       ctx.translate(inputX, centerY);
       ctx.scale(imgScale, imgScale);
-      
+
       const cellSize = 5;
       const gridOffset = -(28 * cellSize) / 2;
-      ctx.globalAlpha = Math.max(0.2, s1); // Ensure it's never fully invisible once animation starts
-      
-      if (isValidGrid && pixelGrid) {
+      ctx.globalAlpha = 1.0;
+
+      if (pixelGrid && pixelGrid.length === 28 && pixelGrid[0].length === 28) {
         for (let r = 0; r < 28; r++) {
           for (let c = 0; c < 28; c++) {
-            const val = pixelGrid[r][c]; 
+            // FIX: Correct orientation by ensuring no flip
+            // Standard mapping: grid[r][c]
+            const val = pixelGrid[r][c];
             if (val > 0.1) {
-              const intensity = Math.floor(lerp(40, 255, val)); // Boost low values for visibility
+              const intensity = Math.floor(val * 255);
               ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
               ctx.fillRect(gridOffset + c * cellSize, gridOffset + r * cellSize, cellSize - 0.5, cellSize - 0.5);
             }
           }
         }
+        // Image box
+        ctx.strokeStyle = "rgba(255,255,255,0.1)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(gridOffset - 4, gridOffset - 4, 28 * cellSize + 8, 28 * cellSize + 8);
       } else {
-        // Warning overlay if data is missing
-        ctx.fillStyle = "rgba(255, 50, 50, 0.1)";
-        ctx.fillRect(gridOffset, gridOffset, 28 * cellSize, 28 * cellSize);
+        // Data Unavailable Box
+        ctx.fillStyle = "rgba(255, 0, 0, 0.05)";
+        ctx.fillRect(gridOffset - 4, gridOffset - 4, 28 * cellSize + 8, 28 * cellSize + 8);
+        ctx.strokeStyle = "rgba(255, 0, 0, 0.4)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(gridOffset - 4, gridOffset - 4, 28 * cellSize + 8, 28 * cellSize + 8);
         
-        ctx.fillStyle = "#ff4444";
-        ctx.font = "bold 10px Inter, sans-serif";
+        ctx.fillStyle = "rgba(255, 0, 0, 0.8)";
+        ctx.font = "bold 8px Inter, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("DATA", 0, -5);
-        ctx.fillText("UNAVAILABLE", 0, 8);
+        ctx.textBaseline = "middle";
+        ctx.fillText("DATA", 0, -6);
+        ctx.fillText("UNAVAILABLE", 0, 6);
       }
-      
-      // Image box
-      ctx.strokeStyle = isValidGrid ? "rgba(255,255,255,0.1)" : "rgba(255, 50, 50, 0.4)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(gridOffset - 4, gridOffset - 4, 28 * cellSize + 8, 28 * cellSize + 8);
       ctx.restore();
 
       // --- 2. THE NETWORK ---
@@ -212,21 +206,21 @@ export default function ForwardPassVisualizer({
           for (let j = 0; j < numHid; j++) {
             const hy = hidStart + j * hidSpace;
             const growth = getPhase(progress, 0.3 + (i / numIn) * 0.1, 0.45 + (j / numHid) * 0.05);
-            
+
             if (growth > 0) {
               const isCrit = (i % 3 === 0 && j % 2 === 0);
               const alpha = lerp(0.3, isCrit ? 1.0 : dimOpacity, highlightPhase);
-              
+
               ctx.save();
               ctx.globalAlpha = s2 * alpha * (progress < 0.5 ? growth : 1);
               ctx.strokeStyle = isCrit && highlightPhase > 0 ? highlightColor : accentColor;
               ctx.lineWidth = 1 + (isCrit ? highlightPhase * 1.5 : 0);
-              
+
               if (isCrit && highlightPhase > 0) {
                 ctx.shadowBlur = 8 * highlightPhase;
                 ctx.shadowColor = highlightColor;
               }
-              
+
               ctx.beginPath();
               ctx.moveTo(netX_in, iy);
               ctx.lineTo(lerp(netX_in, netX_hid, growth), lerp(iy, hy, growth));
@@ -250,7 +244,7 @@ export default function ForwardPassVisualizer({
           ctx.fillStyle = accentColor;
           ctx.globalAlpha = s2 * 0.6;
           ctx.fill();
-          
+
           ctx.strokeStyle = "rgba(255,255,255,0.15)";
           ctx.lineWidth = 0.5;
           ctx.stroke();
@@ -266,7 +260,7 @@ export default function ForwardPassVisualizer({
             ctx.fillStyle = COLORS.purple;
             ctx.globalAlpha = s2 * 0.8;
             ctx.fill();
-            
+
             ctx.strokeStyle = "rgba(255,255,255,0.15)";
             ctx.lineWidth = 0.5;
             ctx.stroke();
@@ -284,7 +278,7 @@ export default function ForwardPassVisualizer({
                 ctx.globalAlpha = s2 * alpha * (progress < 0.65 ? growth : 1);
                 ctx.strokeStyle = isCrit && highlightPhase > 0 ? highlightColor : COLORS.cyan;
                 ctx.lineWidth = 1 + (isCrit ? highlightPhase * 2 : 0);
-                
+
                 if (isCrit && highlightPhase > 0) {
                   ctx.shadowBlur = 12 * highlightPhase;
                   ctx.shadowColor = highlightColor;
@@ -314,30 +308,30 @@ export default function ForwardPassVisualizer({
           const oy = outStart + k * outSpace;
           const isTop = k === predictedIndex;
           const nodeFade = getPhase(progress, 0.55, 0.65);
-          
+
           if (nodeFade > 0) {
             const growthS6 = s6;
             const currentR = (isTop ? nodeR + 3 * growthS6 : nodeR) * nodeFade;
-            
+
             ctx.save();
             ctx.beginPath();
             ctx.arc(netX_out, oy, currentR, 0, Math.PI * 2);
             ctx.fillStyle = isTop ? highlightColor : COLORS.dimText;
             // Increased alpha for non-top nodes (0.5 -> 0.3 instead of 0.5 -> 0.1)
             ctx.globalAlpha = s2 * (isTop ? 1.0 : lerp(0.6, 0.4, highlightPhase));
-            
+
             if (isTop && growthS6 > 0) {
               ctx.shadowBlur = 15 * growthS6;
               ctx.shadowColor = highlightColor;
             }
-            
+
             ctx.fill();
-            
+
             // Subtle border for all nodes to make them visible
             ctx.strokeStyle = isTop ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.2)";
             ctx.lineWidth = 0.8;
             ctx.stroke();
-            
+
             ctx.restore();
 
             // --- ANCHORED LABEL (Phase 6) ---
@@ -363,24 +357,24 @@ export default function ForwardPassVisualizer({
                 ctx.save();
                 ctx.globalAlpha = getPhase(reveal, 0.5, 1);
                 ctx.textAlign = "left";
-                
+
                 // Big Digit
                 ctx.font = "bold 32px Inter, sans-serif";
                 ctx.fillStyle = highlightColor;
                 ctx.fillText(labels[k], labelX + 10, oy + 10);
-                
+
                 // Medium %
                 const digitW = ctx.measureText(labels[k]).width;
                 ctx.font = "500 18px Inter, sans-serif";
                 ctx.fillStyle = "#fff";
                 ctx.fillText(`${(prob * 100).toFixed(1)}%`, labelX + 10 + digitW + 15, oy + 6);
-                
+
                 // Small Confidence
                 ctx.font = "uppercase 10px Inter, sans-serif";
                 ctx.fillStyle = "rgba(255,255,255,0.4)";
                 ctx.letterSpacing = "0.1em";
                 ctx.fillText("Confidence", labelX + 10 + digitW + 15, oy + 22);
-                
+
                 ctx.restore();
               }
             } else if (progress >= 0.85) {
@@ -390,7 +384,7 @@ export default function ForwardPassVisualizer({
               const barStartX = netX_out + 15;
               const barMaxW = 40;
               const barW = prob * barMaxW * reveal;
-              
+
               ctx.fillStyle = COLORS.indigo;
               ctx.globalAlpha = 0.3 * reveal; // Increased from 0.15
               roundRect(ctx, barStartX, oy - 2, barW, 4, 2);
@@ -412,7 +406,7 @@ export default function ForwardPassVisualizer({
 
     rafRef.current = requestAnimationFrame(animate);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [probabilities, predictedIndex, labels, accentColor, highlightColor, pixelGrid]);
+  }, [probabilities, predictedIndex, labels, accentColor, highlightColor, imageGrid]);
 
   const handleClose = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);

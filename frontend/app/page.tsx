@@ -17,10 +17,10 @@ const ForwardPassVisualizer = dynamic(
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface PredictionResult {
-  predicted_digit: number;
+  predictedIndex: number;
   confidence: number;
   probabilities: number[];
-  image_grid?: number[][];
+  imageGrid?: number[][];
 }
 
 export default function Home() {
@@ -34,7 +34,7 @@ export default function Home() {
 
   // Wake up the Render API on page load
   const warmUpApi = useCallback(() => {
-    fetch(`${API_BASE_URL}/health`).catch(() => {});
+    fetch(`${API_BASE_URL}/health`).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -60,7 +60,13 @@ export default function Home() {
       }
 
       const result = await response.json();
-      setPrediction(result);
+      console.log("API RESPONSE:", result);
+      setPrediction({
+        predictedIndex: result.predictedDigit ?? result.predicted_digit ?? result.predictedIndex,
+        confidence: result.confidence,
+        probabilities: result.probabilities,
+        imageGrid: result.imageGrid ?? result.image_grid,
+      });
     } catch (err) {
       console.error("Prediction error:", err);
       setError(err instanceof Error ? err.message : "Failed to connect to the API. Please ensure the backend is running.");
@@ -88,7 +94,13 @@ export default function Home() {
       }
 
       const result = await response.json();
-      setPrediction(result);
+      console.log("API RESPONSE:", result);
+      setPrediction({
+        predictedIndex: result.predictedDigit ?? result.predicted_digit ?? result.predictedIndex,
+        confidence: result.confidence,
+        probabilities: result.probabilities,
+        imageGrid: result.imageGrid ?? result.image_grid,
+      });
     } catch (err) {
       console.error("Prediction error:", err);
       setError(err instanceof Error ? err.message : "Failed to connect to the API. Please ensure the backend is running.");
@@ -263,10 +275,10 @@ export default function Home() {
       {showVisualizer && prediction && (
         <ForwardPassVisualizer
           probabilities={prediction.probabilities}
-          predictedIndex={prediction.predicted_digit}
+          predictedIndex={prediction.predictedIndex}
           labels={digitLabels}
           mode="digit"
-          imageGrid={prediction.image_grid}
+          imageGrid={prediction.imageGrid}
           onClose={() => setShowVisualizer(false)}
         />
       )}
