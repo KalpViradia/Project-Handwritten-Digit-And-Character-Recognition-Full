@@ -4,6 +4,7 @@ interface PredictionResult {
     predictedIndex: number;
     confidence: number;
     probabilities: number[];
+    imageGrid?: number[][];
 }
 
 interface PredictionDisplayProps {

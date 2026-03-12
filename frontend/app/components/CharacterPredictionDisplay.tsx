@@ -8,6 +8,7 @@ interface CharacterPrediction {
     predictedIndex: number;
     confidence: number;
     probabilities: number[];
+    imageGrid?: number[][];
     warning?: string | null;
 }
 
