@@ -45,20 +45,7 @@ function lerpColor(c1: string, c2: string, t: number) {
   return c2; // Simplified for this cinematic effect
 }
 
-/** Generates a dummy grid if none provided */
-function generatePixelGrid(probabilities: number[], predictedIndex: number): number[][] {
-  const grid: number[][] = [];
-  for (let r = 0; r < 28; r++) {
-    const row: number[] = [];
-    for (let c = 0; c < 28; c++) {
-      const dist = Math.sqrt(Math.pow(r - 14, 2) + Math.pow(c - 14, 2));
-      const val = Math.max(0, 1 - dist / 12) * (0.4 + Math.random() * 0.4);
-      row.push(val);
-    }
-    grid.push(row);
-  }
-  return grid;
-}
+// Removed generatePixelGrid fallback to enforce strict data requirements
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -89,7 +76,17 @@ export default function ForwardPassVisualizer({
   
   const accentColor = mode === "digit" ? COLORS.indigo : COLORS.emerald;
   const highlightColor = mode === "digit" ? COLORS.cyan : COLORS.teal;
-  const pixelGrid = useRef(imageGrid || generatePixelGrid(probabilities, predictedIndex)).current;
+
+  // Debug production missing image grid
+  console.log("imageGrid length:", imageGrid?.length);
+
+  // Validate imageGrid
+  const isValidGrid = imageGrid && imageGrid.length === 28 && imageGrid[0]?.length === 28;
+  const pixelGrid = imageGrid;
+
+  if (!isValidGrid) {
+    console.error("Visualizer Error: imageGrid is missing or invalid (expected 28x28 array).");
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -158,22 +155,33 @@ export default function ForwardPassVisualizer({
       
       const cellSize = 5;
       const gridOffset = -(28 * cellSize) / 2;
-      ctx.globalAlpha = 1.0; 
+      ctx.globalAlpha = Math.max(0.2, s1); // Ensure it's never fully invisible once animation starts
       
-      for (let r = 0; r < 28; r++) {
-        for (let c = 0; c < 28; c++) {
-          // FIX: Correct orientation by ensuring no flip
-          // Standard mapping: grid[r][c]
-          const val = pixelGrid[r][c]; 
-          if (val > 0.1) {
-            const intensity = Math.floor(val * 255);
-            ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
-            ctx.fillRect(gridOffset + c * cellSize, gridOffset + r * cellSize, cellSize - 0.5, cellSize - 0.5);
+      if (isValidGrid && pixelGrid) {
+        for (let r = 0; r < 28; r++) {
+          for (let c = 0; c < 28; c++) {
+            const val = pixelGrid[r][c]; 
+            if (val > 0.1) {
+              const intensity = Math.floor(lerp(40, 255, val)); // Boost low values for visibility
+              ctx.fillStyle = `rgb(${intensity}, ${intensity}, ${intensity})`;
+              ctx.fillRect(gridOffset + c * cellSize, gridOffset + r * cellSize, cellSize - 0.5, cellSize - 0.5);
+            }
           }
         }
+      } else {
+        // Warning overlay if data is missing
+        ctx.fillStyle = "rgba(255, 50, 50, 0.1)";
+        ctx.fillRect(gridOffset, gridOffset, 28 * cellSize, 28 * cellSize);
+        
+        ctx.fillStyle = "#ff4444";
+        ctx.font = "bold 10px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("DATA", 0, -5);
+        ctx.fillText("UNAVAILABLE", 0, 8);
       }
+      
       // Image box
-      ctx.strokeStyle = "rgba(255,255,255,0.1)";
+      ctx.strokeStyle = isValidGrid ? "rgba(255,255,255,0.1)" : "rgba(255, 50, 50, 0.4)";
       ctx.lineWidth = 1;
       ctx.strokeRect(gridOffset - 4, gridOffset - 4, 28 * cellSize + 8, 28 * cellSize + 8);
       ctx.restore();
