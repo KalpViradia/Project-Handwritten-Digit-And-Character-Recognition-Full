@@ -84,7 +84,10 @@ export default function ApiStatusBanner({ onApiReady }: ApiStatusBannerProps) {
                     Warming up the AI model on Render — this may take ~50s on first
                     visit…
                   </span>
-                  <div className="spinner w-4 h-4 !border-2"></div>
+                  <svg className="animate-spin" style={{width: '16px', height: '16px'}} viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="rgba(165,180,252,0.3)" strokeWidth="3" />
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="#a5b4fc" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
                 </>
               )}
               {status === "ready" && (
