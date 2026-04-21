@@ -13,8 +13,43 @@ const ForwardPassVisualizer = dynamic(
   { ssr: false }
 );
 
-// API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// API Configuration – strip trailing slash to avoid double-slash in URLs
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
+
+/**
+ * Client-side fallback: extract a 28×28 grayscale grid from a canvas data-URI.
+ * Used when the backend doesn't return imageGrid in its response.
+ */
+function extractImageGridFromDataURI(dataURI: string): Promise<number[][]> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 28;
+      canvas.height = 28;
+      const ctx = canvas.getContext("2d")!;
+      // Draw resized to 28×28
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, 28, 28);
+      ctx.drawImage(img, 0, 0, 28, 28);
+      const imageData = ctx.getImageData(0, 0, 28, 28);
+      const grid: number[][] = [];
+      for (let r = 0; r < 28; r++) {
+        const row: number[] = [];
+        for (let c = 0; c < 28; c++) {
+          const idx = (r * 28 + c) * 4;
+          // Use luminance from RGBA
+          const val = imageData.data[idx] * 0.299 + imageData.data[idx + 1] * 0.587 + imageData.data[idx + 2] * 0.114;
+          row.push(val / 255);
+        }
+        grid.push(row);
+      }
+      resolve(grid);
+    };
+    img.onerror = () => resolve([]);
+    img.src = dataURI;
+  });
+}
 
 interface PredictionResult {
   predictedIndex: number;
@@ -61,11 +96,18 @@ export default function Home() {
 
       const result = await response.json();
       console.log("API RESPONSE:", result);
+
+      // Use backend imageGrid, or generate one client-side from the canvas data
+      let grid = result.imageGrid ?? result.image_grid;
+      if (!grid || !Array.isArray(grid) || grid.length !== 28) {
+        grid = await extractImageGridFromDataURI(imageData);
+      }
+
       setPrediction({
         predictedIndex: result.predictedDigit ?? result.predicted_digit ?? result.predictedIndex,
         confidence: result.confidence,
         probabilities: result.probabilities,
-        imageGrid: result.imageGrid ?? result.image_grid,
+        imageGrid: grid,
       });
     } catch (err) {
       console.error("Prediction error:", err);
@@ -95,11 +137,23 @@ export default function Home() {
 
       const result = await response.json();
       console.log("API RESPONSE:", result);
+
+      // Use backend imageGrid, or generate one client-side from the uploaded file
+      let grid = result.imageGrid ?? result.image_grid;
+      if (!grid || !Array.isArray(grid) || grid.length !== 28) {
+        const dataURI = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        grid = await extractImageGridFromDataURI(dataURI);
+      }
+
       setPrediction({
         predictedIndex: result.predictedDigit ?? result.predicted_digit ?? result.predictedIndex,
         confidence: result.confidence,
         probabilities: result.probabilities,
-        imageGrid: result.imageGrid ?? result.image_grid,
+        imageGrid: grid,
       });
     } catch (err) {
       console.error("Prediction error:", err);
@@ -189,12 +243,18 @@ export default function Home() {
                     >
                       {isLoading ? (
                         <span className="flex items-center gap-2">
-                          <span className="spinner w-5 h-5"></span>
+                          <svg className="animate-spin" style={{width: '20px', height: '20px'}} viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
                           Processing...
                         </span>
                       ) : !apiReady ? (
                         <span className="flex items-center gap-2">
-                          <span className="spinner w-4 h-4 !border-2"></span>
+                          <svg className="animate-spin" style={{width: '16px', height: '16px'}} viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3" />
+                            <path d="M12 2a10 10 0 0 1 10 10" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
                           Loading Model…
                         </span>
                       ) : (
