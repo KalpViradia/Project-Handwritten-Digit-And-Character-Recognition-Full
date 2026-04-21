@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 interface ApiStatusBannerProps {
   onApiReady?: () => void;
@@ -81,7 +81,7 @@ export default function ApiStatusBanner({ onApiReady }: ApiStatusBannerProps) {
                 <>
                   <span className="api-banner-pulse">⏳</span>
                   <span>
-                    Warming up the AI model on Render — this may take ~30s on first
+                    Warming up the AI model on Render — this may take ~50s on first
                     visit…
                   </span>
                   <div className="spinner w-4 h-4 !border-2"></div>
