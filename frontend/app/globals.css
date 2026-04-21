@@ -89,6 +89,13 @@ body {
   transform: translateY(0);
 }
 
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .btn-secondary {
   background: transparent;
   color: var(--foreground);
@@ -264,12 +271,20 @@ body {
 
 /* Loading spinner */
 .spinner {
+  display: inline-block;
   width: 40px;
   height: 40px;
   border: 3px solid rgba(99, 102, 241, 0.2);
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Spinner inside buttons — use white track for visibility */
+.btn-primary .spinner {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
 }
 
 @keyframes spin {
